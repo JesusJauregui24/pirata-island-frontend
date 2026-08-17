@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pirata Island - Grand Line Adventure</title>
+    <title>Pirata Island - Telegram Mini App</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- React y ReactDOM -->
@@ -14,251 +14,253 @@
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                    colors: {
+                        telomon: {
+                            dark: '#070b12',
+                            card: '#0f172a',
+                            border: '#1e293b',
+                            gold: '#f59e0b',
+                            emerald: '#10b981',
+                            cyan: '#06b6d4'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #07090e; }
-        .pirate-title { font-family: 'Cinzel', serif; }
-        .game-panel {
-            background: linear-gradient(145deg, #131b2e 0%, #0a0f1d 100%);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 215, 0, 0.2);
-        }
-        .bounty-card {
-            background: linear-gradient(135deg, #261c14 0%, #17110c 100%);
-            border: 2px solid #d4af37;
-        }
+        body { background-color: #05080f; color: #f8fafc; touch-action: manipulation; }
+        .banner-glow { box-shadow: 0 10px 30px rgba(245, 158, 11, 0.25); }
+        .btn-glow { box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4); }
+        .app-container { max-width: 440px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; justify-content: space-between; }
     </style>
 </head>
-<body class="text-slate-100 min-h-screen flex items-center justify-center p-2 sm:p-4">
-    <div id="root" class="w-full max-w-md"></div>
+<body>
+    <div id="root" class="app-container"></div>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
-        const API_URL = 'https://pirata-island-backend.onrender.com/api';
 
         function App() {
-            const [player, setPlayer] = useState(null);
-            const [loading, setLoading] = useState(true);
-            const [currentTab, setCurrentTab] = useState('island');
-            const [battleLog, setBattleLog] = useState('⚓ ¡El mar está listo! Elige tu acción para conquistar el Grand Line.');
-            const [activeSkin, setActiveSkin] = useState('Luffy');
+            const [tab, setTab] = useState('home');
+            const [beli, setBeli] = useState(24500);
+            const [energy, setEnergy] = useState(900);
+            const [maxEnergy, setMaxEnergy] = useState(1000);
+            const [tokens, setTokens] = useState(125);
 
+            // Rellenar energía gradualmente
             useEffect(() => {
-                fetch(`${API_URL}/auth`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ telegramId: 'user_12345', username: 'Nakama' })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    setPlayer(data);
-                    setLoading(false);
-                })
-                .catch(() => setLoading(false));
-            }, []);
+                const timer = setInterval(() => {
+                    setEnergy(prev => Math.min(maxEnergy, prev + 3));
+                }, 1000);
+                return () => clearInterval(timer);
+            }, [maxEnergy]);
 
-            const handleFight = async () => {
-                if (!player || player.energy < 10) return;
-                try {
-                    const res = await fetch(`${API_URL}/fight`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ telegramId: player.telegramId })
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                        setPlayer(data.player);
-                        setBattleLog(`⚔️ ¡Victoria! Derrotaste a la Marina y conseguiste +${data.earnedBeli} Beli.`);
-                    }
-                } catch(e) {
-                    setBattleLog('⚠️ Error al conectar con el servidor.');
-                }
+            const handleAction = () => {
+                if (energy < 15) return;
+                setEnergy(prev => prev - 15);
+                setBeli(prev => prev + 120);
             };
-
-            const handleClaim = async () => {
-                try {
-                    const res = await fetch(`${API_URL}/claim`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ telegramId: player.telegramId })
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                        setPlayer(prev => ({ ...prev, cryptoTokens: data.cryptoTokens }));
-                        setBattleLog('💎 ¡Tesoros recolectados de las Frutas del Diablo con éxito!');
-                    }
-                } catch(e) {
-                    setBattleLog('⚠️ Error al reclamar tesoros.');
-                }
-            };
-
-            if (loading) {
-                return (
-                    <div className="flex flex-col items-center justify-center p-10 text-center game-panel rounded-3xl border border-amber-500/30">
-                        <div className="animate-spin rounded-full h-14 w-14 border-4 border-amber-500 border-t-transparent mb-4 shadow-lg shadow-amber-500/20"></div>
-                        <p className="pirate-title text-amber-400 text-lg tracking-widest animate-pulse">Zarpando al Nuevo Mundo...</p>
-                    </div>
-                );
-            }
 
             return (
-                <div className="game-panel rounded-3xl overflow-hidden border border-amber-500/40 shadow-2xl">
+                <div className="flex flex-col h-screen justify-between pb-20 select-none">
                     
-                    {/* Header / Tarjeta de Perfil Estilo Recompensa */}
-                    <div className="bounty-card p-4 relative overflow-hidden">
-                        <div className="absolute -right-4 -bottom-4 text-7xl opacity-10">🏴‍☠️</div>
-                        <div className="flex items-center gap-3 relative z-10">
-                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-600 to-yellow-400 flex items-center justify-center text-3xl shadow-lg border-2 border-yellow-200">
-                                {activeSkin === 'Luffy' ? '👒' : '⚔️'}
+                    {/* Header Estilo Bot Telegram */}
+                    <header className="px-4 pt-4 pb-3 bg-telomon-dark/90 backdrop-blur-md sticky top-0 z-30 border-b border-telomon-border flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-600 via-yellow-500 to-emerald-500 flex items-center justify-center text-lg shadow-lg border border-amber-300/40">
+                                🏴‍☠️
                             </div>
-                            <div className="flex-1">
-                                <div className="flex items-center justify-between">
-                                    <h2 className="pirate-title text-amber-400 text-base tracking-wider font-extrabold">{player?.username || 'Nakama'}</h2>
-                                    <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/40 font-bold">Nivel 1</span>
-                                </div>
-                                <p className="text-xs text-amber-200/70 mt-0.5">Recompensa: <span className="text-yellow-300 font-bold">15,000,000 🪙</span></p>
+                            <div>
+                                <h1 className="text-sm font-extrabold tracking-wide text-slate-100 flex items-center gap-1">
+                                    Pirata Island <i className="fa-solid fa-circle-check text-cyan-400 text-xs"></i>
+                                </h1>
+                                <p className="text-[11px] text-amber-400 font-bold">Nakama • Nivel 15</p>
                             </div>
                         </div>
+                        <div className="flex items-center gap-2">
+                            <div className="bg-telomon-card px-2.5 py-1 rounded-xl border border-telomon-border flex items-center gap-1 text-xs font-bold text-amber-300">
+                                <i className="fa-solid fa-coins"></i> {beli.toLocaleString()}
+                            </div>
+                        </div>
+                    </header>
 
-                        {/* Barra de Experiencia / Progreso */}
-                        <div className="mt-3 w-full bg-black/40 rounded-full h-2 overflow-hidden border border-amber-500/20">
-                            <div className="bg-gradient-to-r from-amber-500 to-yellow-300 h-full w-3/4 rounded-full"></div>
-                        </div>
-                    </div>
-
-                    {/* Barra de Recursos Interactiva */}
-                    <div className="grid grid-cols-3 gap-2 p-3 bg-slate-950/90 border-y border-slate-800 text-center">
-                        <div className="bg-slate-900/80 p-2.5 rounded-2xl border border-amber-500/20 shadow">
-                            <span className="text-[9px] uppercase tracking-wider text-amber-400 font-extrabold block"><i className="fa-solid fa-coins mr-1"></i> Beli</span>
-                            <span className="font-extrabold text-amber-300 text-sm">{player?.beli || 0}</span>
-                        </div>
-                        <div className="bg-slate-900/80 p-2.5 rounded-2xl border border-emerald-500/20 shadow">
-                            <span className="text-[9px] uppercase tracking-wider text-emerald-400 font-extrabold block"><i className="fa-solid fa-bolt mr-1"></i> Energía</span>
-                            <span className="font-extrabold text-emerald-300 text-sm">{player?.energy || 0}/100</span>
-                        </div>
-                        <div className="bg-slate-900/80 p-2.5 rounded-2xl border border-cyan-500/20 shadow">
-                            <span className="text-[9px] uppercase tracking-wider text-cyan-400 font-extrabold block"><i className="fa-solid fa-gem mr-1"></i> Tokens</span>
-                            <span className="font-extrabold text-cyan-300 text-sm">{player?.cryptoTokens || 0}</span>
-                        </div>
-                    </div>
-
-                    {/* Área Principal de Contenido */}
-                    <div className="p-4 min-h-[300px] flex flex-col justify-between">
+                    {/* Contenido Principal */}
+                    <main className="flex-1 px-4 py-3 overflow-y-auto space-y-4">
                         
-                        {currentTab === 'island' && (
+                        {tab === 'home' && (
                             <div className="space-y-4">
-                                <div className="relative bg-gradient-to-b from-amber-950/40 via-slate-900 to-slate-900 p-4 rounded-2xl border border-amber-600/30 text-center shadow-inner">
-                                    <div className="absolute top-2.5 right-2.5 bg-amber-500/20 text-amber-300 text-[10px] px-2.5 py-0.5 rounded-full border border-amber-500/40 font-bold">
-                                        <i className="fa-solid fa-compass mr-1"></i> East Blue
+                                {/* Banner Principal Estilo Telomon Play & Earn */}
+                                <div className="relative rounded-3xl overflow-hidden border-2 border-amber-500/40 banner-glow bg-gradient-to-b from-amber-950/80 via-slate-900 to-telomon-card p-5 text-center">
+                                    <div className="absolute top-2 right-3 flex gap-1">
+                                        <span className="bg-amber-500/20 text-amber-300 text-[10px] px-2 py-0.5 rounded-full border border-amber-500/30 font-bold">⚡ TON Network</span>
                                     </div>
-                                    <div className="text-6xl my-3 filter drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]">🏝️</div>
+                                    <div className="text-5xl my-2">🏝️⚔️</div>
+                                    <h2 className="text-lg font-black text-amber-400 tracking-wide uppercase">PIRATA ISLAND PLAY & EARN</h2>
+                                    <p className="text-xs text-slate-300 mt-1 px-2 font-medium">Captura Nakamas, combate contra la Marina, explora los mares y gana recompensas reales.</p>
                                     
-                                    {/* Panel de Log de Batalla */}
-                                    <div className="bg-black/40 p-3 rounded-xl border border-slate-800">
-                                        <p className="text-xs text-slate-300 italic font-medium leading-relaxed">
-                                            "{battleLog}"
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2.5">
-                                    <button 
-                                        onClick={handleFight}
-                                        className="w-full bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold py-3.5 px-4 rounded-2xl transition duration-200 shadow-xl shadow-red-950/50 flex items-center justify-center gap-2.5 border border-amber-400/30 text-sm tracking-wide cursor-pointer active:scale-95"
-                                    >
-                                        <i className="fa-solid fa-skull text-yellow-300 text-base"></i> Cazar Piratas / Marina <span className="text-xs bg-black/30 px-2 py-0.5 rounded-lg text-amber-300">10 ⚡</span>
-                                    </button>
-                                    <button 
-                                        onClick={handleClaim}
-                                        className="w-full bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-700 hover:from-cyan-500 hover:to-blue-600 text-white font-bold py-3 px-4 rounded-2xl transition duration-200 shadow-xl shadow-cyan-950/50 flex items-center justify-center gap-2.5 border border-cyan-400/30 text-sm tracking-wide cursor-pointer active:scale-95"
-                                    >
-                                        <i className="fa-solid fa-lemon text-yellow-300 text-base"></i> Cosechar Frutas del Diablo
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {currentTab === 'map' && (
-                            <div className="space-y-3">
-                                <h3 className="pirate-title text-amber-400 text-xs tracking-wider text-center uppercase font-bold mb-3">
-                                    <i className="fa-solid fa-map-marked-alt mr-1"></i> Cartografía del Grand Line
-                                </h3>
-                                <div className="space-y-2.5">
-                                    <div className="bg-amber-950/40 p-3.5 rounded-2xl border border-amber-500/40 flex items-center justify-between shadow-md">
-                                        <div className="flex items-center gap-3">
-                                            <div className="text-2xl">🌊</div>
-                                            <div>
-                                                <div className="text-sm font-bold text-amber-300">East Blue</div>
-                                                <p className="text-[11px] text-slate-400">Mar seguro. Nivel recomendado: 1+</p>
-                                            </div>
+                                    <div className="grid grid-cols-2 gap-2 mt-4">
+                                        <div className="bg-black/40 p-2.5 rounded-2xl border border-amber-500/20">
+                                            <span className="text-[10px] text-slate-400 block uppercase font-bold">Tokens TON</span>
+                                            <span className="text-sm font-extrabold text-cyan-300">{tokens} 💎</span>
                                         </div>
-                                        <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-full border border-emerald-500/40 font-bold">Activo</span>
-                                    </div>
-                                    <div className="bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800/80 flex items-center justify-between opacity-60">
-                                        <div className="flex items-center gap-3">
-                                            <div className="text-2xl">⚡</div>
-                                            <div>
-                                                <div className="text-sm font-bold text-slate-400">Grand Line</div>
-                                                <p className="text-[11px] text-slate-500">Requiere Nivel 25</p>
-                                            </div>
+                                        <div className="bg-black/40 p-2.5 rounded-2xl border border-emerald-500/20">
+                                            <span className="text-[10px] text-slate-400 block uppercase font-bold">Energía</span>
+                                            <span className="text-sm font-extrabold text-emerald-400">{energy}/{maxEnergy}</span>
                                         </div>
-                                        <span className="text-[10px] bg-slate-800 text-slate-400 px-3 py-1 rounded-full font-bold">🔒 Bloqueado</span>
+                                    </div>
+                                </div>
+
+                                {/* Botón de Acción Principal (Estilo Clicker / Bot de Batalla) */}
+                                <div className="text-center space-y-3 pt-2">
+                                    <button 
+                                        onClick={handleAction}
+                                        className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-slate-950 font-black text-sm uppercase tracking-wider btn-glow border border-amber-200 active:scale-95 transition flex items-center justify-center gap-2 cursor-pointer shadow-xl"
+                                    >
+                                        <i className="fa-solid fa-sword text-lg"></i> Cazar / Combate Rápido (-15 ⚡)
+                                    </button>
+                                </div>
+
+                                {/* Características rápidas del Bot */}
+                                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                                    <div className="bg-telomon-card p-3 rounded-2xl border border-telomon-border flex items-center gap-3">
+                                        <div className="text-2xl bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20">🏴‍☠️</div>
+                                        <div>
+                                            <h4 className="text-xs font-bold text-slate-100">Capturar Nakamas</h4>
+                                            <p className="text-[10px] text-slate-400">Rarezas épicas</p>
+                                        </div>
+                                    </div>
+                                    <div className="bg-telomon-card p-3 rounded-2xl border border-telomon-border flex items-center gap-3">
+                                        <div className="text-2xl bg-cyan-500/10 p-2.5 rounded-xl border border-cyan-500/20">🌍</div>
+                                        <div>
+                                            <h4 className="text-xs font-bold text-slate-100">Explorar Mares</h4>
+                                            <p className="text-[10px] text-slate-400">Grand Line</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         )}
 
-                        {currentTab === 'crew' && (
+                        {tab === 'team' && (
                             <div className="space-y-3">
-                                <h3 className="pirate-title text-amber-400 text-xs tracking-wider text-center uppercase font-bold mb-3">
-                                    <i className="fa-solid fa-user-ninja mr-1"></i> Selección de Capitanes
+                                <h3 className="text-sm font-extrabold text-amber-400 flex items-center gap-2">
+                                    <i className="fa-solid fa-users"></i> Tu Tripulación y Nakamas
                                 </h3>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div 
-                                        onClick={() => setActiveSkin('Luffy')}
-                                        className={`p-3.5 rounded-2xl border cursor-pointer transition text-center shadow-lg ${activeSkin === 'Luffy' ? 'bg-amber-950/60 border-amber-500 ring-2 ring-amber-500/30' : 'bg-slate-950/60 border-slate-800 opacity-70 hover:opacity-100'}`}
-                                    >
-                                        <div className="text-4xl mb-2">👒</div>
-                                        <p className="text-xs font-bold text-amber-300">Sombrero de Paja</p>
-                                        <span className="inline-block mt-2 text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                                            {activeSkin === 'Luffy' ? 'Equipado ⚓' : 'Seleccionar'}
-                                        </span>
+                                <div className="grid grid-cols-2 gap-2.5">
+                                    <div className="bg-telomon-card p-3 rounded-2xl border border-amber-500/30 text-center relative overflow-hidden">
+                                        <span className="absolute top-2 right-2 text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-bold">Épico</span>
+                                        <div className="text-4xl my-2">👒</div>
+                                        <h4 className="text-xs font-bold text-slate-100">Sombrero de Paja</h4>
+                                        <p className="text-[10px] text-amber-400 mt-0.5 font-bold">Nivel 25 • ATK 450</p>
                                     </div>
-                                    <div 
-                                        onClick={() => setActiveSkin('Zoro')}
-                                        className={`p-3.5 rounded-2xl border cursor-pointer transition text-center shadow-lg ${activeSkin === 'Zoro' ? 'bg-amber-950/60 border-amber-500 ring-2 ring-amber-500/30' : 'bg-slate-950/60 border-slate-800 opacity-70 hover:opacity-100'}`}
-                                    >
-                                        <div className="text-4xl mb-2">⚔️</div>
-                                        <p className="text-xs font-bold text-amber-300">Roronoa Zoro</p>
-                                        <span className="inline-block mt-2 text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                                            {activeSkin === 'Zoro' ? 'Equipado ⚓' : 'Seleccionar'}
-                                        </span>
+                                    <div className="bg-telomon-card p-3 rounded-2xl border border-cyan-500/30 text-center relative overflow-hidden">
+                                        <span className="absolute top-2 right-2 text-[9px] bg-cyan-500/20 text-cyan-300 px-1.5 py-0.5 rounded font-bold">Raro</span>
+                                        <div className="text-4xl my-2">⚔️</div>
+                                        <h4 className="text-xs font-bold text-slate-100">Espadachín Roronoa</h4>
+                                        <p className="text-[10px] text-cyan-400 mt-0.5 font-bold">Nivel 20 • ATK 380</p>
                                     </div>
                                 </div>
                             </div>
                         )}
-                    </div>
 
-                    {/* Barra de Navegación Inferior Estilizada */}
-                    <div className="grid grid-cols-3 border-t border-slate-800/80 bg-slate-950 p-1.5 gap-1">
+                        {tab === 'earn' && (
+                            <div className="space-y-3">
+                                <h3 className="text-sm font-extrabold text-amber-400 flex items-center gap-2">
+                                    <i className="fa-solid fa-gift"></i> Misiones y Recompensas TON
+                                </h3>
+                                
+                                <div className="bg-telomon-card p-3.5 rounded-2xl border border-telomon-border flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-2xl bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20">📢</div>
+                                        <div>
+                                            <h4 className="text-xs font-bold text-slate-100">Unirse al Canal Oficial</h4>
+                                            <p className="text-[11px] text-amber-400 font-bold">+5,000 Beli</p>
+                                        </div>
+                                    </div>
+                                    <button className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold px-3.5 py-2 rounded-xl transition shadow">
+                                        Reclamar
+                                    </button>
+                                </div>
+
+                                <div className="bg-telomon-card p-3.5 rounded-2xl border border-telomon-border flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-2xl bg-cyan-500/10 p-2.5 rounded-xl border border-cyan-500/20">👥</div>
+                                        <div>
+                                            <h4 className="text-xs font-bold text-slate-100">Invitar Amigos</h4>
+                                            <p className="text-[11px] text-cyan-400 font-bold">+10 Tokens por amigo</p>
+                                        </div>
+                                    </div>
+                                    <button className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-extrabold px-3.5 py-2 rounded-xl transition shadow">
+                                        Invitar
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {tab === 'profile' && (
+                            <div className="space-y-3">
+                                <div className="bg-telomon-card p-5 rounded-3xl border border-telomon-border text-center space-y-3">
+                                    <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-tr from-amber-600 to-yellow-400 flex items-center justify-center text-4xl shadow-xl border-2 border-amber-300">
+                                        👑
+                                    </div>
+                                    <div>
+                                        <h3 className="font-extrabold text-sm text-slate-100">Capitán Nakama</h3>
+                                        <p className="text-xs text-amber-400 font-bold">@nakama_telegram</p>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 pt-2">
+                                        <div className="bg-telomon-dark p-2.5 rounded-xl border border-telomon-border">
+                                            <span className="text-[10px] text-slate-400 block font-bold uppercase">Batallas Ganadas</span>
+                                            <span className="text-xs font-extrabold text-amber-300">142</span>
+                                        </div>
+                                        <div className="bg-telomon-dark p-2.5 rounded-xl border border-telomon-border">
+                                            <span className="text-[10px] text-slate-400 block font-bold uppercase">Rango Global</span>
+                                            <span className="text-xs font-extrabold text-emerald-300">Top 5%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                    </main>
+
+                    {/* Barra de Navegación Inferior Estilo Telegram Mini App */}
+                    <nav className="fixed bottom-0 left-0 right-0 max-w-[440px] mx-auto bg-telomon-dark/95 backdrop-blur-md border-t border-telomon-border px-3 py-2 grid grid-cols-4 gap-1 z-40 shadow-2xl">
                         <button 
-                            onClick={() => setCurrentTab('island')}
-                            className={`py-2.5 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition duration-200 ${currentTab === 'island' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30 shadow' : 'text-slate-400 hover:text-slate-200'}`}
+                            onClick={() => setTab('home')}
+                            className={`flex flex-col items-center py-2 rounded-xl transition font-bold text-xs ${tab === 'home' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30' : 'text-slate-400 hover:text-slate-200'}`}
                         >
-                            <i className="fa-solid fa-island-tropical text-sm"></i> Isla
+                            <i className="fa-solid fa-house text-base mb-0.5"></i>
+                            <span>Inicio</span>
                         </button>
                         <button 
-                            onClick={() => setCurrentTab('map')}
-                            className={`py-2.5 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition duration-200 ${currentTab === 'map' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30 shadow' : 'text-slate-400 hover:text-slate-200'}`}
+                            onClick={() => setTab('team')}
+                            className={`flex flex-col items-center py-2 rounded-xl transition font-bold text-xs ${tab === 'team' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30' : 'text-slate-400 hover:text-slate-200'}`}
                         >
-                            <i className="fa-solid fa-compass text-sm"></i> Mapas
+                            <i className="fa-solid fa-users text-base mb-0.5"></i>
+                            <span>Equipo</span>
                         </button>
                         <button 
-                            onClick={() => setCurrentTab('crew')}
-                            className={`py-2.5 rounded-xl text-xs font-bold flex flex-col items-center gap-1 transition duration-200 ${currentTab === 'crew' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30 shadow' : 'text-slate-400 hover:text-slate-200'}`}
+                            onClick={() => setTab('earn')}
+                            className={`flex flex-col items-center py-2 rounded-xl transition font-bold text-xs ${tab === 'earn' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30' : 'text-slate-400 hover:text-slate-200'}`}
                         >
-                            <i className="fa-solid fa-users text-sm"></i> Skins
+                            <i className="fa-solid fa-coins text-base mb-0.5"></i>
+                            <span>Ganar</span>
                         </button>
-                    </div>
+                        <button 
+                            onClick={() => setTab('profile')}
+                            className={`flex flex-col items-center py-2 rounded-xl transition font-bold text-xs ${tab === 'profile' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30' : 'text-slate-400 hover:text-slate-200'}`}
+                        >
+                            <i className="fa-solid fa-user text-base mb-0.5"></i>
+                            <span>Perfil</span>
+                        </button>
+                    </nav>
+
                 </div>
             );
         }
